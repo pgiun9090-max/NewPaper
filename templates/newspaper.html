@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ newspaper_name }} - {{ date_str }}</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --font-main: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      --color-bg: #f8fafc;
+      --color-paper: #ffffff;
+      --color-text-title: #0f172a;
+      --color-text-body: #334155;
+      --color-text-muted: #64748b;
+      --color-border: #e2e8f0;
+      --color-border-dark: #0f172a;
+      --color-badge-bg: #fff1f2;
+      --color-badge-text: #e11d48;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--color-bg);
+      color: var(--color-text-title);
+      line-height: 1.6;
+      padding: 30px 16px 60px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .newspaper-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      background: var(--color-paper);
+      padding: 36px 42px;
+      border-radius: 8px;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Header */
+    header.newspaper-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .newspaper-title {
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--color-border-dark);
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+
+    .newspaper-meta {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .newspaper-meta span.dot {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background-color: #94a3b8;
+    }
+
+    .header-divider {
+      height: 2.5px;
+      background-color: var(--color-border-dark);
+      width: 100%;
+      margin-bottom: 28px;
+    }
+
+    /* Links */
+    a.article-link {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: color 0.15s ease;
+    }
+    a.article-link:hover .article-title-text {
+      color: #2563eb;
+    }
+
+    /* Hero / Top Main News */
+    .hero-card {
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 26px 30px;
+      background-color: #ffffff;
+      margin-bottom: 28px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background-color: var(--color-badge-bg);
+      color: var(--color-badge-text);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 9999px;
+      margin-bottom: 18px;
+    }
+
+    .hero-image-wrapper {
+      width: 100%;
+      max-height: 380px;
+      overflow: hidden;
+      border-radius: 12px;
+      margin-bottom: 22px;
+      background: #f1f5f9;
+    }
+
+    .hero-image-wrapper img {
+      width: 100%;
+      height: 100%;
+      max-height: 380px;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.25s ease;
+    }
+    .hero-card:hover .hero-image-wrapper img {
+      transform: scale(1.015);
+    }
+
+    .hero-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.35;
+      margin-bottom: 14px;
+      color: #0f172a;
+    }
+
+    .hero-content {
+      font-size: 15.5px;
+      color: #334155;
+      line-height: 1.7;
+      max-width: 860px;
+      margin: 0 auto 16px;
+      text-align: center;
+      word-break: keep-all;
+    }
+
+    .hero-source {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    /* 2-Column Featured Cards Grid */
+    .featured-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+      margin-bottom: 36px;
+    }
+
+    .featured-card {
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 22px;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .featured-card:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      transform: translateY(-2px);
+    }
+
+    .featured-image-wrapper {
+      width: 100%;
+      height: 210px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      background: #f1f5f9;
+    }
+
+    .featured-image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .featured-title {
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.4;
+      margin-bottom: 12px;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+
+    .featured-content {
+      font-size: 14.5px;
+      color: var(--color-text-body);
+      line-height: 1.62;
+      margin-bottom: 16px;
+      flex-grow: 1;
+      word-break: keep-all;
+    }
+
+    .featured-source {
+      font-size: 12.5px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+      margin-top: auto;
+    }
+
+    /* Category Columns Section (2 Columns: Left & Right) */
+    .columns-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 36px;
+      margin-top: 10px;
+    }
+
+    .category-group {
+      margin-bottom: 32px;
+    }
+
+    .category-header {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--color-border-dark);
+      margin-bottom: 18px;
+    }
+
+    .news-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding-bottom: 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px dashed #cbd5e1;
+    }
+    .news-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .news-item-left {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .news-item-title {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.38;
+      color: #0f172a;
+      margin-bottom: 8px;
+      letter-spacing: -0.015em;
+    }
+
+    .news-item-desc {
+      font-size: 13.5px;
+      color: #475569;
+      line-height: 1.58;
+      margin-bottom: 8px;
+      word-break: keep-all;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .news-item-source {
+      font-size: 12px;
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .news-item-thumb {
+      width: 90px;
+      height: 75px;
+      min-width: 90px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f1f5f9;
+      flex-shrink: 0;
+    }
+
+    .news-item-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Fallback image style */
+    .img-placeholder {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Footer */
+    footer.newspaper-footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--color-text-muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .newspaper-container {
+        padding: 24px 18px;
+      }
+      .newspaper-title {
+        font-size: 32px;
+      }
+      .featured-grid,
+      .columns-section {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .hero-title {
+        font-size: 21px;
+      }
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .newspaper-container {
+        box-shadow: none;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="newspaper-container">
+    <!-- Header -->
+    <header class="newspaper-header">
+      <h1 class="newspaper-title">{{ newspaper_name }}</h1>
+      <div class="newspaper-meta">
+        <span>{{ date_str }} 발행 ({{ newspaper_edition }})</span>
+        <span class="dot"></span>
+        <span>발행인: {{ newspaper_publisher }}</span>
+      </div>
+      <div class="header-divider"></div>
+    </header>
+
+    <!-- 1. Hero: 🔥 최고 주요 소식 -->
+    {% if hero_article %}
+    <section class="hero-card">
+      <a {% if hero_article.url %}href="{{ hero_article.url }}" target="_blank"{% endif %} class="article-link">
+        <div class="hero-badge">🔥 최고 주요 소식</div>
+        {% if hero_article.image_url %}
+        <div class="hero-image-wrapper">
+          <img src="{{ hero_article.image_url }}" alt="{{ hero_article.title }}" loading="lazy" onerror="this.parentElement.style.display='none'">
+        </div>
+        {% endif %}
+        <h2 class="hero-title article-title-text">{{ hero_article.title }}</h2>
+        <p class="hero-content">{{ hero_article.content }}</p>
+        <div class="hero-source">
+          출처: {{ hero_article.source }}{% if hero_article.category %} | {{ hero_article.category }}{% endif %}
+        </div>
+      </a>
+    </section>
+    {% endif %}
+
+    <!-- 2. Featured Grid (2 Columns) -->
+    {% if featured_articles %}
+    <section class="featured-grid">
+      {% for item in featured_articles %}
+      <article class="featured-card">
+        <a {% if item.url %}href="{{ item.url }}" target="_blank"{% endif %} class="article-link" style="display: flex; flex-direction: column; height: 100%;">
+          {% if item.image_url %}
+          <div class="featured-image-wrapper">
+            <img src="{{ item.image_url }}" alt="{{ item.title }}" loading="lazy" onerror="this.parentElement.style.display='none'">
+          </div>
+          {% endif %}
+          <h3 class="featured-title article-title-text">{{ item.title }}</h3>
+          <p class="featured-content">{{ item.content }}</p>
+          <div class="featured-source">
+            출처: {{ item.source }}{% if item.category %} | {{ item.category }}{% endif %}
+          </div>
+        </a>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    <!-- 3. Category Columns Section (2 Columns: Left Column & Right Column) -->
+    {% if left_groups or right_groups %}
+    <div class="columns-section">
+      <!-- Left Column -->
+      <div class="column-left">
+        {% for group in left_groups %}
+        <div class="category-group">
+          {% if group.category %}
+          <h3 class="category-header">{{ group.category }}</h3>
+          {% endif %}
+          <div class="category-list">
+            {% for item in group.articles %}
+            <div class="news-item">
+              <div class="news-item-left">
+                <a {% if item.url %}href="{{ item.url }}" target="_blank"{% endif %} class="article-link">
+                  <h4 class="news-item-title article-title-text">{{ item.title }}</h4>
+                  <p class="news-item-desc">{{ item.content }}</p>
+                  <div class="news-item-source">출처: {{ item.source }}</div>
+                </a>
+              </div>
+              {% if item.image_url %}
+              <div class="news-item-thumb">
+                <img src="{{ item.image_url }}" alt="{{ item.title }}" loading="lazy" onerror="this.parentElement.style.display='none'">
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Right Column -->
+      <div class="column-right">
+        {% for group in right_groups %}
+        <div class="category-group">
+          {% if group.category %}
+          <h3 class="category-header">{{ group.category }}</h3>
+          {% endif %}
+          <div class="category-list">
+            {% for item in group.articles %}
+            <div class="news-item">
+              <div class="news-item-left">
+                <a {% if item.url %}href="{{ item.url }}" target="_blank"{% endif %} class="article-link">
+                  <h4 class="news-item-title article-title-text">{{ item.title }}</h4>
+                  <p class="news-item-desc">{{ item.content }}</p>
+                  <div class="news-item-source">출처: {{ item.source }}</div>
+                </a>
+              </div>
+              {% if item.image_url %}
+              <div class="news-item-thumb">
+                <img src="{{ item.image_url }}" alt="{{ item.title }}" loading="lazy" onerror="this.parentElement.style.display='none'">
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="newspaper-footer">
+      <p>© {{ newspaper_name }} · 제작일시: {{ generated_at }} (KST) · 총 {{ total_articles }}개의 엄선된 기사</p>
+    </footer>
+  </div>
+
+</body>
+</html>
