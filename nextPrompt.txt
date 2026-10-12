@@ -1,0 +1,16 @@
+d:/NewsPaper 프로젝트 이어서 진행합니다.
+
+현재 GitHub 저장소(https://github.com/pgiun9090-max/NewPaper)에 다음 핵심 파이프라인의 1차 코드가 커밋 및 업로드 완료되어 있습니다:
+- Gmail IMAP 수집기 (mail_collector.py)
+- Playwright 웹 크롤러 (crawler.py)
+- 기사 중복 제거기 (deduplicator.py)
+- Jinja2 신문 레이아웃 엔진 (newspaper_generator.py & templates/newspaper.html)
+- 스케줄러 및 실행 진입점 (scheduler.py & main.py)
+- 로컬 .env에 Gmail 및 Gemini API 키 설정 완료
+
+이번 세션에서는 다음 항목 중 우선 작업을 이어서 진행하고 싶습니다:
+1. 실제 Gmail 'News' 라벨 메일 수집 테스트 및 파이프라인 검증 (`python main.py --now` 실행 결과 점검)
+2. .env에 설정된 GEMINI_API_KEY를 연동하여 기사 본문 AI 3줄 요약 및 카테고리 자동 분류 품질 고도화
+3. 생성된 신문 HTML을 PDF로 자동 내보내기 또는 이메일 자동 발송 기능 추가
+
+저장소 상태를 확인하고 작업 진행 방안을 안내해 주세요.
