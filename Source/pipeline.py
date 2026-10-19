@@ -19,6 +19,7 @@ from mail_collector import GmailCollector, get_target_time_window
 from mail_parser import EmailParser
 from crawler import PlaywrightCrawler
 from deduplicator import ArticleDeduplicator
+from llm_curator import LLMCurator
 from newspaper_generator import NewspaperGenerator
 from demo_data import DEMO_ARTICLES
 
@@ -38,7 +39,11 @@ def run_pipeline(
     2. Parses structured content vs unstructured links.
     3. Crawls unstructured links with Playwright.
     4. Deduplicates all articles.
-    5. Renders the newspaper HTML.
+    5. Curates via LLM (Gemini 3.8 Flash):
+       - 1 Main Headline (Hero, 1-column wide)
+       - 2 Sub-Headlines (Featured, 2-column)
+       - Summaries & Categories for remaining articles (2-column balanced)
+    6. Renders newspaper HTML in Output/YYYY-MM-DD.html.
     """
     if reference_dt is None:
         target_dt = datetime.now(KST)
@@ -46,11 +51,15 @@ def run_pipeline(
         target_dt = reference_dt.astimezone(KST) if reference_dt.tzinfo else reference_dt.replace(tzinfo=KST)
 
     generator = NewspaperGenerator()
+    curator = LLMCurator()
 
     if use_demo_data:
-        logger.info("Generating newspaper using high-fidelity demo dataset...")
+        logger.info("Generating newspaper using demo dataset with LLM Curation...")
+        hero, featured, remaining = curator.curate_articles(DEMO_ARTICLES)
         output_file = generator.generate(
-            articles=DEMO_ARTICLES,
+            hero_article=hero,
+            featured_articles=featured,
+            remaining_articles=remaining,
             target_date=target_dt
         )
         logger.info(f"Demo newspaper generated successfully at: {output_file}")
@@ -117,9 +126,15 @@ def run_pipeline(
     deduplicator = ArticleDeduplicator(title_threshold=0.65)
     unique_articles = deduplicator.deduplicate(combined_articles)
 
-    # 5. Newspaper HTML Generation
+    # 5. LLM Curation (Gemini 3.8 Flash)
+    logger.info("Executing LLM Curation for article ranking and summarization...")
+    hero, featured, remaining = curator.curate_articles(unique_articles)
+
+    # 6. Newspaper HTML Generation
     output_file = generator.generate(
-        articles=unique_articles,
+        hero_article=hero,
+        featured_articles=featured,
+        remaining_articles=remaining,
         target_date=target_dt
     )
 

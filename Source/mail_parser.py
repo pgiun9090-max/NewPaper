@@ -54,15 +54,31 @@ def clean_text(text: str) -> str:
 
 
 def is_newsletter_unsubscribe_or_ad(url: str, text: str) -> bool:
-    """Filters out unsubscribe links, privacy policies, SNS buttons, etc."""
+    """Filters out unsubscribe links, privacy policies, generic SNS home buttons, etc."""
     lower_url = url.lower()
     lower_text = text.lower()
+
+    # Allow actual content posts from SNS!
+    if any(post_p in lower_url for post_p in ["instagram.com/p/", "instagram.com/reel/", "instagram.com/tv/", "/status/", "youtube.com/watch", "youtu.be/"]):
+        return False
+
     block_patterns = [
-        "unsubscribe", "수신거부", "privacy", "terms", "policy", "facebook.com",
-        "twitter.com", "instagram.com", "linkedin.com", "youtube.com",
+        "unsubscribe", "수신거부", "privacy", "terms", "policy",
+        "facebook.com/sharer", "twitter.com/intent", "linkedin.com/share",
+        "instagram.com/about", "instagram.com/legal", "instagram.com/accounts",
+        "instagram.com/download", "instagram.com/explore",
         "mailchimp", "stibee.com/api", "forms.gle", "kakao.com/share",
         "mailto:", "javascript:", "#"
     ]
+    # Block generic SNS homepages or share links
+    generic_sns = ["facebook.com", "twitter.com", "linkedin.com", "instagram.com", "youtube.com"]
+    for sns in generic_sns:
+        if sns in lower_url:
+            # If it's just the home or profile without content path, block
+            parsed = urlparse(lower_url)
+            if parsed.path in ["", "/", "/home", "/feed"]:
+                return True
+
     return any(bp in lower_url or bp in lower_text for bp in block_patterns)
 
 
@@ -100,6 +116,44 @@ class EmailParser:
 
         structured_articles: List[Dict[str, Any]] = []
         urls_to_crawl: List[str] = []
+
+        # 0. Special Handler for Instagram Emails & Post Notifications
+        is_instagram_mail = "instagram" in sender.lower() or "instagram" in subject.lower()
+        if is_instagram_mail:
+            post_img = ""
+            for img in soup.find_all("img"):
+                src = img.get("src", "")
+                if src and ("scontent" in src or "cdninstagram" in src or "fbcdn" in src or "instagram" in src):
+                    post_img = src
+                    break
+            if not post_img:
+                first_img = soup.find("img")
+                if first_img and first_img.get("src", "").startswith("http"):
+                    post_img = first_img.get("src")
+
+            post_link = ""
+            for a in soup.find_all("a", href=True):
+                href = a.get("href", "")
+                if "instagram.com/p/" in href or "instagram.com/reel/" in href:
+                    post_link = href
+                    break
+
+            all_text_paras = [clean_text(p.get_text()) for p in soup.find_all(["p", "div", "span"]) if len(clean_text(p.get_text())) > 15]
+            ig_body = " ".join(all_text_paras) if all_text_paras else clean_text(soup.get_text())
+            ig_body = re.sub(r'이 메시지는.*?발송되었습니다.*', '', ig_body).strip()
+            ig_body = re.sub(r'Instagram.*?Meta Platforms.*', '', ig_body).strip()
+
+            if len(ig_body) > 20 or post_img:
+                structured_articles.append({
+                    "title": subject or "Instagram 소식",
+                    "content": ig_body[:350] + ("..." if len(ig_body) > 350 else ""),
+                    "full_content": ig_body,
+                    "image_url": post_img,
+                    "url": post_link,
+                    "source": post_link if post_link else "Instagram",
+                    "category": classify_category(f"{subject} {ig_body}"),
+                    "is_structured": True
+                })
 
         # 1. Check if email contains sectioned articles (h2/h3 headings or clear blocks)
         headings = soup.find_all(["h1", "h2", "h3", "h4"])
@@ -142,7 +196,8 @@ class EmailParser:
                         "is_structured": True
                     })
 
-        # 2. Extract potential unstructured links from <a> tags
+        # 2. Extract potential unstructured links from <a> tags and raw text
+        # 2-1. From HTML <a> tags
         for a in soup.find_all("a", href=True):
             href = a.get("href", "").strip()
             link_text = clean_text(a.get_text())
@@ -150,9 +205,19 @@ class EmailParser:
                 continue
             if is_newsletter_unsubscribe_or_ad(href, link_text):
                 continue
-            # Filter out duplicate URLs
             if href not in urls_to_crawl:
                 urls_to_crawl.append(href)
+
+        # 2-2. From plain text body (e.g. URLs sent directly from mobile email)
+        raw_urls = re.findall(r'https?://[^\s<>"\'\)]+', f"{text} {soup.get_text()}")
+        for r_url in raw_urls:
+            r_url = r_url.strip().rstrip(".,;:>")
+            if not r_url.startswith(("http://", "https://")):
+                continue
+            if is_newsletter_unsubscribe_or_ad(r_url, ""):
+                continue
+            if r_url not in urls_to_crawl:
+                urls_to_crawl.append(r_url)
 
         # 3. If no structured articles found, check if the email itself is a single structured article
         if not structured_articles:

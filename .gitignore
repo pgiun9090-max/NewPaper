@@ -39,6 +39,8 @@ playwright-report/
 # Generated Newspapers & Output (Keep only .gitkeep)
 output/*
 !output/.gitkeep
+Output/*
+!Output/.gitkeep
 
 # IDE & OS
 .vscode/

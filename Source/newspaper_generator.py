@@ -26,30 +26,11 @@ class NewspaperGenerator:
         self.output_dir = output_dir
         self.env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
 
-    def organize_articles(self, articles: List[Dict[str, Any]]):
-        """
-        Organizes articles into:
-        1. hero_article (1 item)
-        2. featured_articles (up to 2 items)
-        3. left_column_groups & right_column_groups (balanced columns)
-        """
-        if not articles:
-            return None, [], [], []
+    def balance_remaining_into_columns(self, remaining: List[Dict[str, Any]]):
+        """Groups remaining articles by category and balances into left and right columns."""
+        if not remaining:
+            return [], []
 
-        # Prioritize articles with images for Hero and Featured
-        with_images = [a for a in articles if a.get("image_url")]
-        without_images = [a for a in articles if not a.get("image_url")]
-        sorted_articles = with_images + without_images
-
-        # 1. Hero
-        hero_article = sorted_articles[0]
-        remaining = sorted_articles[1:]
-
-        # 2. Featured (up to 2 items)
-        featured_articles = remaining[:2]
-        remaining = remaining[2:]
-
-        # 3. Group remaining by category
         category_map: Dict[str, List[Dict[str, Any]]] = {}
         preferred_order = ["AI/ML", "데이터", "보안", "기타"]
 
@@ -59,8 +40,6 @@ class NewspaperGenerator:
                 category_map[cat] = []
             category_map[cat].append(item)
 
-        # Build list of sections/groups
-        # If a category has many items (e.g. > 4), we can split it to balance columns
         total_remaining = len(remaining)
         target_half = (total_remaining + 1) // 2
 
@@ -89,11 +68,32 @@ class NewspaperGenerator:
             else:
                 right_groups.append({"category": cat, "articles": items})
 
+        return left_groups, right_groups
+
+    def organize_articles(self, articles: List[Dict[str, Any]]):
+        """Fallback organizer if pre-curation was not used."""
+        if not articles:
+            return None, [], [], []
+
+        with_images = [a for a in articles if a.get("image_url")]
+        without_images = [a for a in articles if not a.get("image_url")]
+        sorted_articles = with_images + without_images
+
+        hero_article = sorted_articles[0]
+        remaining = sorted_articles[1:]
+
+        featured_articles = remaining[:2]
+        remaining = remaining[2:]
+
+        left_groups, right_groups = self.balance_remaining_into_columns(remaining)
         return hero_article, featured_articles, left_groups, right_groups
 
     def generate(
         self,
-        articles: List[Dict[str, Any]],
+        articles: Optional[List[Dict[str, Any]]] = None,
+        hero_article: Optional[Dict[str, Any]] = None,
+        featured_articles: Optional[List[Dict[str, Any]]] = None,
+        remaining_articles: Optional[List[Dict[str, Any]]] = None,
         target_date: Optional[datetime] = None,
         custom_name: Optional[str] = None,
         custom_edition: Optional[str] = None,
@@ -101,6 +101,7 @@ class NewspaperGenerator:
     ) -> Path:
         """
         Generates the newspaper HTML file and returns the output path.
+        Accepts either pre-curated (hero, featured, remaining) or a flat articles list.
         """
         if target_date is None:
             now_kst = datetime.now(KST)
@@ -112,7 +113,19 @@ class NewspaperGenerator:
         newspaper_edition = custom_edition or NEWSPAPER_EDITION
         newspaper_publisher = custom_publisher or NEWSPAPER_PUBLISHER
 
-        hero, featured, left_groups, right_groups = self.organize_articles(articles)
+        # If curated parts are provided
+        if hero_article is not None:
+            hero = hero_article
+            featured = featured_articles or []
+            remaining = remaining_articles or []
+            left_groups, right_groups = self.balance_remaining_into_columns(remaining)
+            total_count = (1 if hero else 0) + len(featured) + len(remaining)
+        elif articles:
+            hero, featured, left_groups, right_groups = self.organize_articles(articles)
+            total_count = len(articles)
+        else:
+            hero, featured, left_groups, right_groups = None, [], [], []
+            total_count = 0
 
         template = self.env.get_template("newspaper.html")
         rendered_html = template.render(
@@ -121,22 +134,26 @@ class NewspaperGenerator:
             newspaper_publisher=newspaper_publisher,
             date_str=date_str,
             generated_at=now_kst.strftime("%Y-%m-%d %H:%M:%S"),
-            total_articles=len(articles),
+            total_articles=total_count,
             hero_article=hero,
             featured_articles=featured,
             left_groups=left_groups,
             right_groups=right_groups
         )
 
-        # Save to dated output file
-        filename = f"newspaper_{date_str}.html"
-        output_path = self.output_dir / filename
-        with open(output_path, "w", encoding="utf-8") as f:
+        # Primary Output: Output/YYYY-MM-DD.html (e.g. Output/2026-10-19.html)
+        primary_filename = f"{date_str}.html"
+        primary_output_path = self.output_dir / primary_filename
+        with open(primary_output_path, "w", encoding="utf-8") as f:
             f.write(rendered_html)
 
-        # Also copy/save to index.html for quick browsing
+        # Compatibility files: Output/newspaper_YYYY-MM-DD.html and Output/index.html
+        compat_path = self.output_dir / f"newspaper_{date_str}.html"
+        with open(compat_path, "w", encoding="utf-8") as f:
+            f.write(rendered_html)
+
         index_path = self.output_dir / "index.html"
         with open(index_path, "w", encoding="utf-8") as f:
             f.write(rendered_html)
 
-        return output_path
+        return primary_output_path

@@ -160,25 +160,49 @@ class PlaywrightCrawler:
             else:
                 site_name = site_name.strip()
 
-            # 4. Body Content extraction
-            body_text = ""
-            # Check content container selectors
-            for sel in CONTENT_SELECTORS:
-                container = page.locator(sel)
-                if container.count() > 0:
-                    # Get paragraph texts inside container
-                    paragraphs = container.first.locator("p").all_inner_texts()
-                    if paragraphs:
-                        clean_paras = [p.strip() for p in paragraphs if len(p.strip()) > 20]
-                        if len(clean_paras) >= 2:
-                            body_text = " ".join(clean_paras)
+            # Special Handler for Instagram Post URLs
+            if "instagram.com" in url.lower():
+                site_name = "Instagram"
+                ig_desc = page.locator("meta[property='og:description']").get_attribute("content") or ""
+                # Instagram og:description often contains: "...님: "caption..."" or just caption
+                caption_match = re.search(r'[:：]\s*["“](.+?)["”]$', ig_desc, re.DOTALL)
+                if caption_match:
+                    body_text = caption_match.group(1).strip()
+                elif ig_desc:
+                    body_text = ig_desc.strip()
+
+                # Clean Instagram Title: Extract bracketed topic e.g. [켄드릭 라마, 2018년 내한 공연...]
+                bracket_match = re.search(r'\[([^\]]+)\]', body_text)
+                if bracket_match and len(bracket_match.group(1).strip()) > 5:
+                    title = bracket_match.group(1).strip()
+                else:
+                    # Use first clean line of caption
+                    lines = [l.strip().lstrip("•-*\"' ") for l in body_text.splitlines() if len(l.strip()) > 5]
+                    if lines:
+                        title = lines[0][:60] + ("..." if len(lines[0]) > 60 else "")
+
+                # If title is still default like "2,679 likes...", override with clean line
+                if not title or re.search(r'\d+[\s,]*likes', title, re.I):
+                    lines = [l.strip().lstrip("•-*\"' ") for l in body_text.splitlines() if len(l.strip()) > 5]
+                    title = lines[0][:60] if lines else "Instagram 소식"
+
+            # 4. Body Content extraction (for standard websites)
+            if not body_text:
+                # Check content container selectors
+                for sel in CONTENT_SELECTORS:
+                    container = page.locator(sel)
+                    if container.count() > 0:
+                        paragraphs = container.first.locator("p").all_inner_texts()
+                        if paragraphs:
+                            clean_paras = [p.strip() for p in paragraphs if len(p.strip()) > 20]
+                            if len(clean_paras) >= 2:
+                                body_text = " ".join(clean_paras)
+                                break
+                        text_candidate = container.first.inner_text().strip()
+                        if len(text_candidate) > 100:
+                            lines = [line.strip() for line in text_candidate.splitlines() if len(line.strip()) > 20]
+                            body_text = " ".join(lines)
                             break
-                    # Fallback to inner_text of the container
-                    text_candidate = container.first.inner_text().strip()
-                    if len(text_candidate) > 100:
-                        lines = [line.strip() for line in text_candidate.splitlines() if len(line.strip()) > 20]
-                        body_text = " ".join(lines)
-                        break
 
             # If still empty, fall back to meta description or all <p>
             if not body_text or len(body_text) < 50:
@@ -211,7 +235,7 @@ class PlaywrightCrawler:
                 "full_content": body_text,
                 "url": url,
                 "image_url": image_url,
-                "source": site_name,
+                "source": url,
                 "is_crawled": True
             }
 

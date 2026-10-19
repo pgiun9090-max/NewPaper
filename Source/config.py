@@ -6,11 +6,15 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Base Directory
-BASE_DIR = Path(__file__).resolve().parent
+# Base Directory (Project Root: d:\NewsPaper)
+BASE_DIR = Path(__file__).resolve().parent.parent
+SOURCE_DIR = Path(__file__).resolve().parent
 
-# Load environment variables
+# Load environment variables from root .env
 load_dotenv(BASE_DIR / ".env")
+
+# Gemini API Key
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 
 # Gmail IMAP Settings
 IMAP_SERVER = os.getenv("IMAP_SERVER", "imap.gmail.com")
@@ -29,7 +33,7 @@ SCHEDULE_TIME = os.getenv("SCHEDULE_TIME", "08:00")
 
 # Directories
 TEMPLATES_DIR = BASE_DIR / "templates"
-OUTPUT_DIR = BASE_DIR / "output"
+OUTPUT_DIR = BASE_DIR / "Output"
 IMAGE_DIR = BASE_DIR / "Image"
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

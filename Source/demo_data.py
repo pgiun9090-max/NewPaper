@@ -112,5 +112,13 @@ DEMO_ARTICLES = [
         "source": "LeeJaeHoon",
         "category": "보안",
         "url": ""
+    },
+    {
+        "title": "오픈AI 출신 로봇 스타트업, 가정용 휴머노이드 AI 모델 최신 시연 공개",
+        "content": "오픈AI 출신 엔지니어들이 설립한 피지컬 인텔리전스가 인스타그램 공식 계정을 통해 물품 분류 및 정밀 조작을 수행하는 멀티모달 로봇 제어 모델의 최신 시연 영상을 공개했습니다. 시각-언어-행동(VLA) 통합 신경망을 바탕으로 복잡한 실내 환경에서도 사람의 개입 없이 유연하게 적응하며 글로벌 테크 커뮤니티의 큰 주목을 받고 있습니다.",
+        "image_url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+        "source": "Instagram (@physical_intelligence)",
+        "category": "AI/ML",
+        "url": "https://www.instagram.com/p/DB123456789/"
     }
 ]
